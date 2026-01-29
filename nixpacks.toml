@@ -1,0 +1,13 @@
+# Nixpacks configuration for Railway
+[phases.setup]
+nixPkgs = ["nodejs_18", "chromium", "libuuid"]
+
+[phases.install]
+cmds = ["cd backend && npm install"]
+
+[start]
+cmd = "cd backend && npm start"
+
+[variables]
+PUPPETEER_SKIP_CHROMIUM_DOWNLOAD = "true"
+PUPPETEER_EXECUTABLE_PATH = "/nix/store/chromium/bin/chromium"
