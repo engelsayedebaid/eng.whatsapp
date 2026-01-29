@@ -1,0 +1,465 @@
+.qr-container {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  background: linear-gradient(180deg, #00a884 0%, #00a884 200px, #111b21 200px);
+  position: relative;
+  padding: 20px;
+}
+
+.qr-content {
+  background: #202c33;
+  border-radius: 8px;
+  padding: 48px;
+  max-width: 800px;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+  z-index: 1;
+}
+
+.qr-header {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 32px;
+
+  .logo {
+    flex-shrink: 0;
+  }
+
+  h1 {
+    font-size: 28px;
+    font-weight: 400;
+    color: #e9edef;
+  }
+}
+
+.instructions {
+  text-align: center;
+  margin-bottom: 32px;
+
+  h2 {
+    font-size: 22px;
+    font-weight: 400;
+    color: #e9edef;
+    margin-bottom: 24px;
+  }
+
+  .account-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    background: linear-gradient(135deg, #00a884 0%, #008f72 100%);
+    padding: 8px 16px;
+    border-radius: 20px;
+    margin-bottom: 16px;
+
+    .account-initial {
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.2);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 14px;
+      font-weight: 600;
+      color: white;
+    }
+
+    .account-label {
+      font-size: 14px;
+      font-weight: 500;
+      color: white;
+    }
+  }
+
+  ol {
+    list-style-position: inside;
+    color: #8696a0;
+    font-size: 15px;
+    line-height: 2;
+
+    li {
+      margin-bottom: 4px;
+    }
+
+    strong {
+      color: #e9edef;
+    }
+  }
+}
+
+// Account Setup Step
+.account-setup {
+  text-align: center;
+  max-width: 400px;
+  padding: 20px;
+
+  .setup-icon {
+    margin-bottom: 24px;
+  }
+
+  h2 {
+    font-size: 26px;
+    font-weight: 500;
+    color: #e9edef;
+    margin-bottom: 8px;
+  }
+
+  .subtitle {
+    font-size: 14px;
+    color: #8696a0;
+    margin-bottom: 32px;
+  }
+
+  .input-wrapper {
+    margin-bottom: 24px;
+
+    input {
+      width: 100%;
+      padding: 16px 20px;
+      background: #2a3942;
+      border: 2px solid #3b4a54;
+      border-radius: 12px;
+      color: #e9edef;
+      font-size: 16px;
+      text-align: center;
+      outline: none;
+      transition: all 0.2s;
+
+      &:focus {
+        border-color: #00a884;
+        box-shadow: 0 0 0 3px rgba(0, 168, 132, 0.2);
+      }
+
+      &::placeholder {
+        color: #667781;
+      }
+    }
+  }
+
+  .btn-large {
+    width: 100%;
+    padding: 14px 24px;
+    font-size: 16px;
+
+    svg {
+      margin-left: 8px;
+    }
+  }
+
+  .btn-spinner {
+    width: 18px;
+    height: 18px;
+    border: 2px solid rgba(255, 255, 255, 0.3);
+    border-top-color: white;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+    margin-right: 8px;
+    display: inline-block;
+  }
+
+  // Connected Accounts Section
+  .connected-accounts-section {
+    margin-top: 32px;
+    width: 100%;
+
+    .section-divider {
+      display: flex;
+      align-items: center;
+      margin-bottom: 16px;
+
+      &::before,
+      &::after {
+        content: '';
+        flex: 1;
+        height: 1px;
+        background: #3b4a54;
+      }
+
+      span {
+        padding: 0 16px;
+        color: #8696a0;
+        font-size: 14px;
+        white-space: nowrap;
+      }
+    }
+
+    .connected-accounts-list {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .connected-account-item {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 12px 16px;
+      background: #2a3942;
+      border-radius: 12px;
+      cursor: pointer;
+      transition: all 0.2s;
+      border: 1px solid transparent;
+
+      &:hover {
+        background: #3b4a54;
+        border-color: #00a884;
+        transform: translateX(4px);
+      }
+
+      .account-avatar {
+        width: 44px;
+        height: 44px;
+        border-radius: 50%;
+        background: linear-gradient(135deg, #00a884 0%, #00c897 100%);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        position: relative;
+        flex-shrink: 0;
+
+        span:first-child {
+          font-size: 18px;
+          font-weight: 600;
+          color: white;
+        }
+
+        .status-indicator {
+          position: absolute;
+          bottom: 2px;
+          right: 2px;
+          width: 12px;
+          height: 12px;
+          border-radius: 50%;
+          background: #667781;
+          border: 2px solid #2a3942;
+
+          &.online {
+            background: #00a884;
+          }
+        }
+      }
+
+      .account-info {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 2px;
+
+        .account-name {
+          font-size: 15px;
+          font-weight: 500;
+          color: #e9edef;
+        }
+
+        .account-phone {
+          font-size: 13px;
+          color: #00a884;
+          direction: ltr;
+        }
+      }
+
+      .arrow-icon {
+        color: #8696a0;
+        transition: all 0.2s;
+      }
+
+      &:hover .arrow-icon {
+        color: #00a884;
+        transform: translateX(4px);
+      }
+    }
+  }
+}
+
+.btn-back {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: transparent;
+  border: none;
+  color: #8696a0;
+  font-size: 14px;
+  cursor: pointer;
+  margin-top: 16px;
+  padding: 8px 16px;
+  border-radius: 8px;
+  transition: all 0.2s;
+
+  &:hover {
+    background: rgba(255, 255, 255, 0.05);
+    color: #e9edef;
+  }
+}
+
+.btn {
+  background: #00a884;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  padding: 10px 20px;
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+
+  &:hover:not(:disabled) {
+    background: #00c897;
+  }
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+
+  &.btn-primary {
+    background: #00a884;
+  }
+}
+
+.qr-box {
+  position: relative;
+  width: 264px;
+  height: 264px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #fff;
+  border-radius: 8px;
+  padding: 8px;
+  margin-bottom: 24px;
+
+  .qr-image {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+  }
+
+  .loading,
+  .waiting,
+  .error {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 16px;
+
+    p {
+      color: #667781;
+      font-size: 14px;
+    }
+  }
+
+  .error {
+    .error-icon {
+      font-size: 48px;
+    }
+
+    p {
+      text-align: center;
+      color: #ea4b5f;
+    }
+  }
+
+  .refresh-btn {
+    position: absolute;
+    bottom: -12px;
+    right: -12px;
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    background: #00a884;
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.2s;
+    border: 3px solid #202c33;
+
+    &:hover {
+      background: #008f72;
+      transform: scale(1.1);
+    }
+  }
+}
+
+.spinner {
+  width: 40px;
+  height: 40px;
+  border: 3px solid #e9edef;
+  border-top-color: #00a884;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.status-bar {
+  display: flex;
+  justify-content: center;
+  padding-top: 16px;
+  border-top: 1px solid #2a3942;
+  width: 100%;
+
+  .status-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: #8696a0;
+    font-size: 13px;
+
+    .status-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: #667781;
+    }
+
+    &.connected .status-dot {
+      background: #00a884;
+    }
+  }
+}
+
+.decoration {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 200px;
+  background: #00a884;
+  z-index: 0;
+}
+
+@media (max-width: 600px) {
+  .qr-content {
+    padding: 24px;
+  }
+
+  .qr-header h1 {
+    font-size: 22px;
+  }
+
+  .instructions h2 {
+    font-size: 18px;
+  }
+
+  .qr-box {
+    width: 200px;
+    height: 200px;
+  }
+}

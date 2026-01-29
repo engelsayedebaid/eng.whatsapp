@@ -1,0 +1,162 @@
+<div class="chat-window-container">
+  @if (!chat) {
+    <!-- No Chat Selected -->
+    <div class="no-chat-selected">
+      <div class="content">
+        <div class="illustration">
+          <svg viewBox="0 0 303 172" width="360" preserveAspectRatio="xMidYMid meet">
+            <path fill="#364147" d="M229.565 160.229c32.47-25.963 47.27-69.443 33.021-111.116C240.088-7.7 167.86-17.616 116.5 20.307 75.145 51.096 60.56 105.436 83.108 147.848h-.012c1.068 1.977 0.073 4.432-2.027 4.989-25.474 6.737-41.703 13.317-38.792 15.754 3.515 2.937 28.567 1.19 62.431-3.741 9.94-1.447 20.553-3.346 31.513-5.609 36.727 14.083 79.091 10.81 93.344.988z"></path>
+            <path fill="#8696a0" d="M200 80c0-22.091-17.909-40-40-40s-40 17.909-40 40 17.909 40 40 40 40-17.909 40-40zm-65 0c0-13.807 11.193-25 25-25s25 11.193 25 25-11.193 25-25 25-25-11.193-25-25z"></path>
+          </svg>
+        </div>
+        <h2>WhatsApp Web</h2>
+        <p>Send and receive messages without keeping your phone online.</p>
+        <p class="hint">Use WhatsApp on up to 4 linked devices and 1 phone at the same time.</p>
+      </div>
+      <div class="footer">
+        <svg viewBox="0 0 10 12" width="10" height="12">
+          <path fill="currentColor" d="M5.002.002A4.5 4.5 0 0 0 .5 4.502v3.006a4.5 4.5 0 0 0 4.502 4.494h.006A4.5 4.5 0 0 0 9.5 7.508V4.502A4.5 4.5 0 0 0 5.002.002zm0 1a3.5 3.5 0 0 1 3.498 3.5v3.006a3.5 3.5 0 0 1-3.498 3.494h-.006A3.5 3.5 0 0 1 1.5 7.508V4.502a3.5 3.5 0 0 1 3.496-3.5h.006z"></path>
+        </svg>
+        <span>End-to-end encrypted</span>
+      </div>
+    </div>
+  } @else {
+    <!-- Chat Header -->
+    <div class="chat-header">
+      <div class="chat-info">
+        <div class="avatar" [style.background]="getAvatarGradient(chat.name)">
+          @if (chat.profilePicUrl) {
+            <img [src]="chat.profilePicUrl" [alt]="chat.name" (error)="onImageError($event)" />
+          } @else {
+            <span class="initials">{{ getInitials(chat.name) }}</span>
+          }
+          @if (isOnline()) {
+            <span class="online-indicator"></span>
+          }
+        </div>
+        <div class="details">
+          <span class="name">{{ chat.name }}</span>
+          <span class="status">
+            @if (chat.isGroup) {
+              <span>Group</span>
+            } @else if (isOnline()) {
+              <span class="online-text">online</span>
+            } @else if (lastSeen()) {
+              <span>last seen {{ formatLastSeen(lastSeen()!) }}</span>
+            } @else {
+              <span>Click here for contact info</span>
+            }
+          </span>
+        </div>
+      </div>
+      <div class="actions">
+        <!-- Pin Button -->
+        <button 
+          class="btn btn-icon" 
+          [class.active]="chat.isPinned"
+          (click)="togglePin()"
+          [title]="chat.isPinned ? 'Unpin chat' : 'Pin chat'">
+          <svg viewBox="0 0 24 24" width="20" height="20">
+            <path fill="currentColor" d="M16.5 4.5l3 3-1.414 1.414L17 7.828V15l-2 2v3h-1v-3l-2-2V7.828L10.914 8.914 9.5 7.5l3-3h4z"></path>
+          </svg>
+        </button>
+        <!-- Archive Button -->
+        <button 
+          class="btn btn-icon" 
+          [class.active]="chat.isArchived"
+          (click)="toggleArchive()"
+          [title]="chat.isArchived ? 'Unarchive chat' : 'Archive chat'">
+          <svg viewBox="0 0 24 24" width="20" height="20">
+            <path fill="currentColor" d="M20.54 5.23l-1.39-1.68C18.88 3.21 18.47 3 18 3H6c-.47 0-.88.21-1.16.55L3.46 5.23C3.17 5.57 3 6.02 3 6.5V19c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V6.5c0-.48-.17-.93-.46-1.27zM6.24 5h11.52l.83 1H5.42l.82-1zM5 19V8h14v11H5zm8.45-9h-2.9v3H8l4 4 4-4h-2.55z"></path>
+          </svg>
+        </button>
+        <button class="btn btn-icon" title="Search messages">
+          <svg viewBox="0 0 24 24" width="24" height="24">
+            <path fill="currentColor" d="M15.5 14h-.79l-.28-.27a6.5 6.5 0 0 0 1.48-5.34c-.47-2.78-2.79-5-5.59-5.34A6.505 6.505 0 0 0 3.03 10c.56 2.8 2.94 4.97 5.84 5.41 1.78.27 3.47-.19 4.81-1.14l.27.28v.79l4.25 4.25c.41.41 1.08.41 1.49 0 .41-.41.41-1.08 0-1.49L15.5 14zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"></path>
+          </svg>
+        </button>
+        <button class="btn btn-icon" title="More options">
+          <svg viewBox="0 0 24 24" width="24" height="24">
+            <path fill="currentColor" d="M12 7a2 2 0 1 0-.001-4.001A2 2 0 0 0 12 7zm0 2a2 2 0 1 0-.001 3.999A2 2 0 0 0 12 9zm0 6a2 2 0 1 0-.001 3.999A2 2 0 0 0 12 15z"></path>
+          </svg>
+        </button>
+      </div>
+    </div>
+
+    <!-- Messages Area -->
+    <div class="messages-area custom-scrollbar" #messagesContainer (scroll)="onScroll()">
+      @if (isLoading()) {
+        <div class="loading-messages">
+          <div class="spinner"></div>
+          <p>Loading messages...</p>
+        </div>
+      } @else if (messages().length === 0) {
+        <div class="no-messages">
+          <p>No messages yet. Send a message to start the conversation!</p>
+        </div>
+      } @else {
+        <div class="messages-list">
+          @for (message of messages(); track message.id; let i = $index) {
+            @if (getDateSeparator(i); as dateSep) {
+              <div class="date-separator">
+                <span>{{ dateSep }}</span>
+              </div>
+            }
+            <app-message-bubble 
+              [message]="message" 
+              [showTail]="shouldShowTail(i)"
+              [chatId]="chat.id">
+            </app-message-bubble>
+          }
+        </div>
+        
+        <!-- Scroll to bottom button - shows when scrolled up -->
+        @if (showScrollToBottom) {
+          <button class="scroll-btn scroll-bottom" (click)="scrollToBottom()" title="Go to last message">
+            <svg viewBox="0 0 24 24" width="20" height="20">
+              <path fill="currentColor" d="M7.41 8.59L12 13.17l4.59-4.58L18 10l-6 6-6-6z"></path>
+            </svg>
+          </button>
+        }
+      }
+    </div>
+
+    <!-- Message Input -->
+    <div class="message-input-area">
+      <button class="btn btn-icon" title="Attach">
+        <svg viewBox="0 0 24 24" width="24" height="24">
+          <path fill="currentColor" d="M1.816 15.556v.002c0 1.502.584 2.912 1.646 3.972s2.472 1.647 3.974 1.647a5.58 5.58 0 0 0 3.972-1.645l9.547-9.548c.769-.768 1.147-1.767 1.058-2.817-.079-.968-.548-1.927-1.319-2.698-1.594-1.592-4.068-1.711-5.517-.262l-7.916 7.915c-.881.881-.792 2.25.214 3.261.959.958 2.423 1.053 3.263.215l5.511-5.512c.28-.28.267-.722.053-.936l-.244-.244c-.191-.191-.567-.349-.957.04l-5.506 5.506c-.18.18-.635.127-.976-.214-.098-.097-.576-.613-.213-.973l7.915-7.917c.818-.817 2.267-.699 3.23.262.5.501.802 1.1.849 1.685.051.573-.156 1.111-.589 1.543l-9.547 9.549a3.97 3.97 0 0 1-2.829 1.171 3.975 3.975 0 0 1-2.83-1.173 3.973 3.973 0 0 1-1.172-2.828c0-1.071.415-2.076 1.172-2.83l7.209-7.211c.157-.157.264-.579.028-.814L11.5 4.36a.572.572 0 0 0-.834.018l-7.205 7.207a5.577 5.577 0 0 0-1.645 3.971z"></path>
+        </svg>
+      </button>
+      
+      <div class="input-wrapper">
+        <input 
+          type="text"
+          [(ngModel)]="newMessage"
+          (keyup.enter)="sendMessage()"
+          placeholder="Type a message"
+          [disabled]="isSending"
+          class="message-input"
+        />
+      </div>
+      
+      <button 
+        class="btn btn-icon send-btn" 
+        (click)="sendMessage()"
+        [disabled]="!newMessage.trim() || isSending"
+        title="Send message">
+        @if (isSending) {
+          <div class="spinner spinner-sm"></div>
+        } @else if (newMessage.trim()) {
+          <svg viewBox="0 0 24 24" width="24" height="24">
+            <path fill="currentColor" d="M1.101 21.757L23.8 12.028 1.101 2.3l.011 7.912 13.623 1.816-13.623 1.817-.011 7.912z"></path>
+          </svg>
+        } @else {
+          <svg viewBox="0 0 24 24" width="24" height="24">
+            <path fill="currentColor" d="M11.999 14.942c2.001 0 3.531-1.53 3.531-3.531V4.35c0-2.001-1.53-3.531-3.531-3.531S8.469 2.35 8.469 4.35v7.061c0 2.001 1.53 3.531 3.53 3.531zm6.238-3.53c0 3.531-2.942 6.002-6.237 6.002s-6.237-2.471-6.237-6.002H3.761c0 4.001 3.178 7.297 7.061 7.885v3.884h2.354v-3.884c3.884-.588 7.061-3.884 7.061-7.885h-2z"></path>
+          </svg>
+        }
+      </button>
+    </div>
+  }
+</div>

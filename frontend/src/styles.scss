@@ -1,0 +1,522 @@
+// WhatsApp Theme Variables
+$primary: #00a884;
+$primary-dark: #008f72;
+$primary-light: #25d366;
+
+$background: #111b21;
+$background-secondary: #0b141a;
+$sidebar-bg: #202c33;
+$panel-bg: #222e35;
+$surface: #2a3942;
+$surface-hover: #374248;
+
+$text-primary: #e9edef;
+$text-secondary: #8696a0;
+$text-muted: #667781;
+
+$message-out: #005c4b;
+$message-out-dark: #025144;
+$message-in: #202c33;
+
+$border-color: #222d34;
+$divider: #2a3942;
+
+$danger: #ea4b5f;
+$warning: #f7c94b;
+$success: #00a884;
+
+$shadow: rgba(0, 0, 0, 0.3);
+
+// Mixins
+@mixin scrollbar {
+  &::-webkit-scrollbar {
+    width: 6px;
+  }
+
+  &::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  &::-webkit-scrollbar-thumb {
+    background: $surface-hover;
+    border-radius: 3px;
+  }
+}
+
+@mixin flex-center {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+@mixin flex-between {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+// Global Styles
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html,
+body {
+  height: 100%;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  background: $background;
+  color: $text-primary;
+  font-size: 14px;
+  overflow: hidden;
+}
+
+a {
+  color: $primary;
+  text-decoration: none;
+
+  &:hover {
+    text-decoration: underline;
+  }
+}
+
+button {
+  font-family: inherit;
+  cursor: pointer;
+  border: none;
+  outline: none;
+  background: none;
+  color: inherit;
+}
+
+input,
+textarea {
+  font-family: inherit;
+  border: none;
+  outline: none;
+  background: none;
+  color: inherit;
+}
+
+// Utility Classes
+.text-primary {
+  color: $text-primary;
+}
+
+.text-secondary {
+  color: $text-secondary;
+}
+
+.text-muted {
+  color: $text-muted;
+}
+
+.text-success {
+  color: $success;
+}
+
+.text-danger {
+  color: $danger;
+}
+
+.text-warning {
+  color: $warning;
+}
+
+.bg-primary {
+  background-color: $primary;
+}
+
+.bg-surface {
+  background-color: $surface;
+}
+
+.bg-sidebar {
+  background-color: $sidebar-bg;
+}
+
+// Animations
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes pulse {
+
+  0%,
+  100% {
+    opacity: 1;
+  }
+
+  50% {
+    opacity: 0.5;
+  }
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.3s ease-out;
+}
+
+.animate-slide-in {
+  animation: slideIn 0.3s ease-out;
+}
+
+.animate-pulse {
+  animation: pulse 2s ease-in-out infinite;
+}
+
+.animate-spin {
+  animation: spin 1s linear infinite;
+}
+
+// Badge Styles
+.badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2px 8px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 500;
+
+  &.badge-primary {
+    background: $primary;
+    color: white;
+  }
+
+  &.badge-danger {
+    background: $danger;
+    color: white;
+  }
+
+  &.badge-warning {
+    background: $warning;
+    color: $background;
+  }
+
+  &.badge-unread {
+    background: $primary;
+    color: white;
+    min-width: 20px;
+    height: 20px;
+    border-radius: 10px;
+  }
+}
+
+// Button Styles
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 10px 20px;
+  border-radius: 8px;
+  font-weight: 500;
+  transition: all 0.2s ease;
+  gap: 8px;
+
+  &.btn-primary {
+    background: $primary;
+    color: white;
+
+    &:hover {
+      background: $primary-dark;
+    }
+  }
+
+  &.btn-secondary {
+    background: $surface;
+    color: $text-primary;
+
+    &:hover {
+      background: $surface-hover;
+    }
+  }
+
+  &.btn-danger {
+    background: $danger;
+    color: white;
+
+    &:hover {
+      background: #c73e4f;
+    }
+  }
+
+  &.btn-icon {
+    padding: 10px;
+    border-radius: 50%;
+
+    &:hover {
+      background: $surface-hover;
+    }
+  }
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+}
+
+// Input Styles
+.input-group {
+  position: relative;
+
+  input {
+    width: 100%;
+    padding: 10px 15px;
+    background: $surface;
+    border-radius: 8px;
+    color: $text-primary;
+
+    &::placeholder {
+      color: $text-muted;
+    }
+
+    &:focus {
+      background: $surface-hover;
+    }
+  }
+
+  &.with-icon {
+    input {
+      padding-left: 40px;
+    }
+
+    .icon {
+      position: absolute;
+      left: 12px;
+      top: 50%;
+      transform: translateY(-50%);
+      color: $text-muted;
+    }
+  }
+}
+
+// Avatar Styles
+.avatar {
+  width: 49px;
+  height: 49px;
+  border-radius: 50%;
+  overflow: hidden;
+  background: $surface;
+  @include flex-center;
+  flex-shrink: 0;
+
+  img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+
+  .initials {
+    font-size: 18px;
+    font-weight: 500;
+    color: $text-secondary;
+    text-transform: uppercase;
+  }
+
+  &.avatar-sm {
+    width: 35px;
+    height: 35px;
+
+    .initials {
+      font-size: 14px;
+    }
+  }
+
+  &.avatar-lg {
+    width: 70px;
+    height: 70px;
+
+    .initials {
+      font-size: 24px;
+    }
+  }
+}
+
+// Dropdown Styles
+.dropdown {
+  position: relative;
+
+  .dropdown-menu {
+    position: absolute;
+    top: 100%;
+    right: 0;
+    min-width: 180px;
+    background: $panel-bg;
+    border-radius: 8px;
+    box-shadow: 0 4px 12px $shadow;
+    padding: 8px 0;
+    z-index: 100;
+    opacity: 0;
+    visibility: hidden;
+    transform: translateY(-10px);
+    transition: all 0.2s ease;
+
+    &.show {
+      opacity: 1;
+      visibility: visible;
+      transform: translateY(0);
+    }
+
+    .dropdown-item {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 10px 16px;
+      color: $text-primary;
+      cursor: pointer;
+      transition: background 0.2s;
+
+      &:hover {
+        background: $surface-hover;
+      }
+
+      &.danger {
+        color: $danger;
+      }
+    }
+
+    .dropdown-divider {
+      height: 1px;
+      background: $divider;
+      margin: 8px 0;
+    }
+  }
+}
+
+// Loading Spinner
+.spinner {
+  width: 40px;
+  height: 40px;
+  border: 3px solid $surface;
+  border-top-color: $primary;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+
+  &.spinner-sm {
+    width: 20px;
+    height: 20px;
+    border-width: 2px;
+  }
+
+  &.spinner-lg {
+    width: 60px;
+    height: 60px;
+    border-width: 4px;
+  }
+}
+
+// Empty State
+.empty-state {
+  @include flex-center;
+  flex-direction: column;
+  padding: 40px 20px;
+  text-align: center;
+
+  .icon {
+    font-size: 64px;
+    color: $text-muted;
+    margin-bottom: 16px;
+  }
+
+  h3 {
+    font-size: 20px;
+    font-weight: 400;
+    color: $text-primary;
+    margin-bottom: 8px;
+  }
+
+  p {
+    color: $text-secondary;
+    max-width: 400px;
+  }
+}
+
+// Scrollbar
+.custom-scrollbar {
+  @include scrollbar;
+}
+
+// Status Indicators
+.status-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+
+  &.online {
+    background: $success;
+  }
+
+  &.offline {
+    background: $text-muted;
+  }
+
+  &.away {
+    background: $warning;
+  }
+}
+
+// Tooltip
+.tooltip {
+  position: relative;
+
+  &::after {
+    content: attr(data-tooltip);
+    position: absolute;
+    bottom: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    padding: 6px 12px;
+    background: $panel-bg;
+    color: $text-primary;
+    font-size: 12px;
+    border-radius: 6px;
+    white-space: nowrap;
+    opacity: 0;
+    visibility: hidden;
+    transition: all 0.2s;
+    margin-bottom: 8px;
+    box-shadow: 0 2px 8px $shadow;
+  }
+
+  &:hover::after {
+    opacity: 1;
+    visibility: visible;
+  }
+}
+
+// Main App Layout
+.app-container {
+  display: flex;
+  height: 100vh;
+  width: 100vw;
+  background: $background-secondary;
+}

@@ -1,0 +1,446 @@
+<div class="chat-list-container">
+  <!-- Header -->
+  <div class="chat-list-header">
+    <!-- Account Dropdown -->
+    <div class="account-dropdown" [class.open]="showAccountMenu" (click)="toggleAccountMenu($event)">
+      <div class="account-current">
+        <div class="avatar" [class.active]="activeAccount()?.isReady">
+          <span class="initials">{{ getAccountInitials() }}</span>
+          @if (activeAccount()?.isReady) {
+            <span class="status-dot online"></span>
+          } @else if (activeAccount()?.isInitializing) {
+            <span class="status-dot syncing"></span>
+          }
+        </div>
+        <div class="account-info">
+          <span class="account-name">{{ activeAccount()?.name || 'Select Account' }}</span>
+          <span class="account-phone">{{ getAccountStatusText(activeAccount()) }}</span>
+        </div>
+        <svg class="dropdown-arrow" viewBox="0 0 24 24" width="16" height="16">
+          <path fill="currentColor" d="M7.41 8.59L12 13.17l4.59-4.58L18 10l-6 6-6-6z"></path>
+        </svg>
+      </div>
+      
+      <!-- Dropdown Menu -->
+      @if (showAccountMenu) {
+        <div class="account-menu" (click)="$event.stopPropagation()">
+          <div class="menu-header">
+            <span>Accounts ({{ accounts().length }}/10)</span>
+            @if (accounts().length < 10) {
+              <button class="btn-add-account" (click)="openAddAccountModal()">
+                <svg viewBox="0 0 24 24" width="16" height="16">
+                  <path fill="currentColor" d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"></path>
+                </svg>
+              </button>
+            }
+          </div>
+          
+          <div class="account-list">
+            @for (account of accounts(); track account.id) {
+              <div 
+                class="account-item" 
+                [class.active]="account.isActive"
+                (click)="switchToAccount(account.id)">
+                <div class="account-avatar">
+                  <span>{{ account.name.charAt(0).toUpperCase() }}</span>
+                  @if (account.isReady) {
+                    <span class="status-dot online"></span>
+                  } @else if (account.isInitializing) {
+                    <span class="status-dot syncing"></span>
+                  } @else if (account.hasQR) {
+                    <span class="status-dot qr"></span>
+                  }
+                </div>
+                <div class="account-details">
+                  <span class="name">{{ account.name }}</span>
+                  <span class="phone">{{ getAccountStatusText(account) }}</span>
+                </div>
+                <div class="account-actions">
+                  @if (account.isActive) {
+                    <svg class="check-icon" viewBox="0 0 24 24" width="16" height="16">
+                      <path fill="currentColor" d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"></path>
+                    </svg>
+                  }
+                  <button 
+                    class="btn-delete-account" 
+                    (click)="deleteAccount($event, account.id)"
+                    title="حذف الحساب">
+                    <svg viewBox="0 0 24 24" width="16" height="16">
+                      <path fill="currentColor" d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"></path>
+                    </svg>
+                  </button>
+                </div>
+              </div>
+            }
+          </div>
+          
+          @if (accounts().length === 0) {
+            <div class="no-accounts">
+              <p>No accounts yet</p>
+              <button class="btn-create" (click)="openAddAccountModal()">Create Account</button>
+            </div>
+          }
+        </div>
+      }
+    </div>
+    <div class="header-actions">
+      <button class="btn btn-icon" (click)="loadChats()" title="Refresh">
+        <svg viewBox="0 0 24 24" width="24" height="24">
+          <path fill="currentColor" d="M17.65 6.35A7.958 7.958 0 0 0 12 4c-4.42 0-7.99 3.58-7.99 8s3.57 8 7.99 8c3.73 0 6.84-2.55 7.73-6h-2.08A5.99 5.99 0 0 1 12 18c-3.31 0-6-2.69-6-6s2.69-6 6-6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z"></path>
+        </svg>
+      </button>
+      <button class="btn btn-icon" (click)="goToAnalytics()" title="Analytics">
+        <svg viewBox="0 0 24 24" width="24" height="24">
+          <path fill="currentColor" d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zM9 17H7v-7h2v7zm4 0h-2V7h2v10zm4 0h-2v-4h2v4z"></path>
+        </svg>
+      </button>
+      <button 
+        class="btn btn-icon" 
+        [class.active]="showFilters"
+        (click)="toggleFilters()" 
+        title="Filters">
+        <svg viewBox="0 0 24 24" width="24" height="24">
+          <path fill="currentColor" d="M10 18h4v-2h-4v2zM3 6v2h18V6H3zm3 7h12v-2H6v2z"></path>
+        </svg>
+        @if (filterService.activeFiltersCount() > 0) {
+          <span class="filter-badge">{{ filterService.activeFiltersCount() }}</span>
+        }
+      </button>
+      <button 
+        class="btn btn-icon btn-logout" 
+        (click)="logout()" 
+        [disabled]="isLoggingOut"
+        title="Logout">
+        <svg viewBox="0 0 24 24" width="24" height="24">
+          <path fill="currentColor" d="M16 13v-2H7V8l-5 4 5 4v-3z"></path>
+          <path fill="currentColor" d="M20 3h-9c-1.103 0-2 .897-2 2v4h2V5h9v14h-9v-4H9v4c0 1.103.897 2 2 2h9c1.103 0 2-.897 2-2V5c0-1.103-.897-2-2-2z"></path>
+        </svg>
+      </button>
+    </div>
+  </div>
+
+  <!-- Search Bar -->
+  <div class="search-container">
+    <div class="search-input-wrapper">
+      <svg class="search-icon" viewBox="0 0 24 24" width="20" height="20">
+        <path fill="currentColor" d="M15.5 14h-.79l-.28-.27a6.5 6.5 0 0 0 1.48-5.34c-.47-2.78-2.79-5-5.59-5.34A6.505 6.505 0 0 0 3.03 10c.56 2.8 2.94 4.97 5.84 5.41 1.78.27 3.47-.19 4.81-1.14l.27.28v.79l4.25 4.25c.41.41 1.08.41 1.49 0 .41-.41.41-1.08 0-1.49L15.5 14zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"></path>
+      </svg>
+      <input 
+        type="text" 
+        [(ngModel)]="searchQuery"
+        (input)="onSearchInput()"
+        (keyup.enter)="onSearch()"
+        placeholder="Search chats and messages..."
+        class="search-input"
+      />
+      @if (searchQuery) {
+        <button class="clear-search" (click)="clearSearch()">
+          <svg viewBox="0 0 24 24" width="20" height="20">
+            <path fill="currentColor" d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"></path>
+          </svg>
+        </button>
+      }
+    </div>
+
+    <!-- Search Results Dropdown -->
+    @if (showSearchResults) {
+      <div class="search-results-dropdown">
+        @if (isSearching()) {
+          <div class="search-loading">
+            <div class="search-spinner"></div>
+            <span>Searching...</span>
+          </div>
+        } @else if (searchResults().length === 0) {
+          <div class="search-empty">
+            <svg viewBox="0 0 24 24" width="48" height="48">
+              <path fill="currentColor" d="M15.5 14h-.79l-.28-.27a6.5 6.5 0 0 0 1.48-5.34c-.47-2.78-2.79-5-5.59-5.34A6.505 6.505 0 0 0 3.03 10c.56 2.8 2.94 4.97 5.84 5.41 1.78.27 3.47-.19 4.81-1.14l.27.28v.79l4.25 4.25c.41.41 1.08.41 1.49 0 .41-.41.41-1.08 0-1.49L15.5 14zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"></path>
+            </svg>
+            <span>No results found for "{{ searchQuery }}"</span>
+          </div>
+        } @else {
+          <div class="search-results-header">
+            <span>{{ searchResults().length }} results found</span>
+          </div>
+          <div class="search-results-list custom-scrollbar">
+            @for (result of searchResults(); track result.chatId + (result.messageId || '')) {
+              <div class="search-result-item" (click)="selectSearchResult(result)">
+                <div class="result-avatar">
+                  @if (result.isGroup) {
+                    <svg viewBox="0 0 24 24" width="24" height="24">
+                      <path fill="currentColor" d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z"></path>
+                    </svg>
+                  } @else {
+                    <svg viewBox="0 0 24 24" width="24" height="24">
+                      <path fill="currentColor" d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"></path>
+                    </svg>
+                  }
+                </div>
+                <div class="result-content">
+                  <div class="result-header">
+                    <span class="result-name">{{ result.chatName }}</span>
+                    <span class="result-time">{{ formatSearchTime(result.timestamp) }}</span>
+                  </div>
+                  <div class="result-preview">
+                    @if (result.type === 'chat') {
+                      <span class="result-type-badge">Chat</span>
+                    } @else {
+                      <span class="result-type-badge message">Message</span>
+                      @if (result.fromMe) {
+                        <span class="result-from">You: </span>
+                      }
+                    }
+                    <span class="result-text" [innerHTML]="highlightMatch(truncateMessage(result.matchText, 60), searchQuery)"></span>
+                  </div>
+                </div>
+              </div>
+            }
+          </div>
+        }
+      </div>
+    }
+  </div>
+
+
+  <!-- Filter Panel -->
+  @if (showFilters) {
+    <div class="filter-panel animate-slide-in">
+      <div class="filter-group">
+        <label>Chat Type</label>
+        <div class="filter-options">
+          <button 
+            [class.active]="filterService.filters().chatType === 'all'"
+            (click)="applyFilter('chatType', 'all')">All</button>
+          <button 
+            [class.active]="filterService.filters().chatType === 'personal'"
+            (click)="applyFilter('chatType', 'personal')">Personal</button>
+          <button 
+            [class.active]="filterService.filters().chatType === 'group'"
+            (click)="applyFilter('chatType', 'group')">Groups</button>
+        </div>
+      </div>
+      
+      <div class="filter-group">
+        <label>Reply Status</label>
+        <div class="filter-options">
+          <button 
+            [class.active]="filterService.filters().replyStatus === 'all'"
+            (click)="applyFilter('replyStatus', 'all')">All</button>
+          <button 
+            [class.active]="filterService.filters().replyStatus === 'replied'"
+            (click)="applyFilter('replyStatus', 'replied')">Replied</button>
+          <button 
+            [class.active]="filterService.filters().replyStatus === 'not-replied'"
+            (click)="applyFilter('replyStatus', 'not-replied')">Not Replied</button>
+        </div>
+      </div>
+      
+      <div class="filter-group">
+        <label>Read Status</label>
+        <div class="filter-options">
+          <button 
+            [class.active]="filterService.filters().readStatus === 'all'"
+            (click)="applyFilter('readStatus', 'all')">All</button>
+          <button 
+            [class.active]="filterService.filters().readStatus === 'unread'"
+            (click)="applyFilter('readStatus', 'unread')">Unread</button>
+          <button 
+            [class.active]="filterService.filters().readStatus === 'read'"
+            (click)="applyFilter('readStatus', 'read')">Read</button>
+        </div>
+      </div>
+      
+      <div class="filter-group">
+        <label>Date Range</label>
+        <div class="filter-options">
+          <button 
+            [class.active]="filterService.filters().dateRange === 'all'"
+            (click)="applyFilter('dateRange', 'all')">All</button>
+          <button 
+            [class.active]="filterService.filters().dateRange === 'today'"
+            (click)="applyFilter('dateRange', 'today')">Today</button>
+          <button 
+            [class.active]="filterService.filters().dateRange === 'week'"
+            (click)="applyFilter('dateRange', 'week')">Week</button>
+          <button 
+            [class.active]="filterService.filters().dateRange === 'month'"
+            (click)="applyFilter('dateRange', 'month')">Month</button>
+        </div>
+      </div>
+      
+      <div class="filter-group">
+        <label>Contact Type</label>
+        <div class="filter-options">
+          <button 
+            [class.active]="filterService.filters().contactType === 'all'"
+            (click)="applyFilter('contactType', 'all')">All</button>
+          <button 
+            [class.active]="filterService.filters().contactType === 'new'"
+            (click)="applyFilter('contactType', 'new')">New Contacts</button>
+          <button 
+            [class.active]="filterService.filters().contactType === 'existing'"
+            (click)="applyFilter('contactType', 'existing')">Existing</button>
+        </div>
+      </div>
+      
+      @if (filterService.hasActiveFilters()) {
+        <button class="clear-filters-btn" (click)="clearFilters()">
+          Clear All Filters
+        </button>
+      }
+    </div>
+  }
+
+  <!-- Chat List -->
+  <div class="chat-list custom-scrollbar">
+    <!-- Syncing Indicator - always on top -->
+    @if (isSyncing() && chats().length > 0) {
+      <div class="syncing-banner">
+        <div class="syncing-content">
+          <div class="sync-spinner"></div>
+          <span>{{ syncProgress() || 'جاري المزامنة...' }}</span>
+        </div>
+      </div>
+    }
+    
+    <!-- Skeleton Loading State -->
+    @if ((isLoading() || isSyncing()) && chats().length === 0) {
+      <div class="skeleton-container">
+        @for (item of [1,2,3,4,5,6,7,8]; track item) {
+          <div class="skeleton-chat-item">
+            <div class="skeleton-avatar shimmer"></div>
+            <div class="skeleton-content">
+              <div class="skeleton-header">
+                <div class="skeleton-name shimmer"></div>
+                <div class="skeleton-time shimmer"></div>
+              </div>
+              <div class="skeleton-message shimmer"></div>
+            </div>
+          </div>
+        }
+      </div>
+    }
+    
+    <!-- Empty state only when no chats and not syncing -->
+    @if (chats().length === 0 && !isSyncing() && !isLoading()) {
+      <div class="empty-state">
+        <svg viewBox="0 0 303 172" width="250" preserveAspectRatio="xMidYMid meet">
+          <path fill="#364147" d="M229.565 160.229c32.47-25.963 47.27-69.443 33.021-111.116C240.088-7.7 167.86-17.616 116.5 20.307 75.145 51.096 60.56 105.436 83.108 147.848h-.012c1.068 1.977 0.073 4.432-2.027 4.989-25.474 6.737-41.703 13.317-38.792 15.754 3.515 2.937 28.567 1.19 62.431-3.741 9.94-1.447 20.553-3.346 31.513-5.609 36.727 14.083 79.091 10.81 93.344.988z"></path>
+          <path fill="#8696a0" d="M200 80c0-22.091-17.909-40-40-40s-40 17.909-40 40 17.909 40 40 40 40-17.909 40-40zm-65 0c0-13.807 11.193-25 25-25s25 11.193 25 25-11.193 25-25 25-25-11.193-25-25z"></path>
+        </svg>
+        <h3>No chats found</h3>
+        <p>Start a conversation or adjust your filters</p>
+      </div>
+    }
+    
+    <!-- Chat items - always show if there are any -->
+    @if (chats().length > 0) {
+      @for (chat of chats(); track chat.id) {
+        <div 
+          class="chat-item" 
+          [class.selected]="selectedChatId === chat.id"
+          [class.unread]="chat.unreadCount > 0"
+          (click)="selectChat(chat)">
+          <div class="avatar" [style.background]="getAvatarGradient(chat.name)">
+            @if (chat.profilePicUrl) {
+              <img [src]="chat.profilePicUrl" [alt]="chat.name" (error)="onImageError($event, chat)" />
+            } @else {
+              <span class="initials">{{ getInitials(chat.name) }}</span>
+              @if (chat.isGroup) {
+                <span class="group-badge">
+                  <svg viewBox="0 0 24 24" width="12" height="12">
+                    <path fill="currentColor" d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z"></path>
+                  </svg>
+                </span>
+              }
+            }
+          </div>
+          
+          <div class="chat-info">
+            <div class="chat-header">
+              <span class="chat-name">{{ chat.name }}</span>
+              <span class="chat-time" [class.unread]="chat.unreadCount > 0">
+                {{ chat.timestamp | timeAgo }}
+              </span>
+            </div>
+            <div class="chat-preview">
+              <div class="message-preview">
+                @if (chat.lastMessage?.fromMe) {
+                  <span class="tick-icon" [class.ack]="(chat.lastMessage?.ack ?? 0) >= 2">
+                    <svg viewBox="0 0 16 11" width="16" height="11">
+                      <path fill="currentColor" d="M11.071.929a.5.5 0 0 1 .707 0l.707.707a.5.5 0 0 1 0 .707L6.414 8.414a.5.5 0 0 1-.707 0L2.636 5.343a.5.5 0 0 1 0-.707l.707-.707a.5.5 0 0 1 .707 0L6 5.879l5.071-4.95z"></path>
+                      <path fill="currentColor" d="M14.071.929a.5.5 0 0 1 .707 0l.707.707a.5.5 0 0 1 0 .707l-7.071 7.071a.5.5 0 0 1-.707 0l-.707-.707a.5.5 0 0 1 0-.707L14.071.929z"></path>
+                    </svg>
+                  </span>
+                }
+                <span class="preview-text">{{ truncateMessage(chat.lastMessage?.body ?? null) }}</span>
+              </div>
+              <div class="chat-badges">
+                @if (chat.isArchived) {
+                  <span class="archive-icon" title="Archived">
+                    <svg viewBox="0 0 24 24" width="16" height="16">
+                      <path fill="currentColor" d="M20.54 5.23l-1.39-1.68C18.88 3.21 18.47 3 18 3H6c-.47 0-.88.21-1.16.55L3.46 5.23C3.17 5.57 3 6.02 3 6.5V19c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V6.5c0-.48-.17-.93-.46-1.27zM6.24 5h11.52l.83 1H5.42l.82-1zM5 19V8h14v11H5zm8.45-9h-2.9v3H8l4 4 4-4h-2.55z"></path>
+                    </svg>
+                  </span>
+                }
+                @if (!chat.hasBeenReplied && chat.unreadCount === 0) {
+                  <span class="pending-badge" title="Not replied">!</span>
+                }
+                @if (chat.isFirstContact) {
+                  <span class="new-contact-badge" title="New Contact">🆕</span>
+                }
+                @if (chat.unreadCount > 0) {
+                  <span class="unread-badge">{{ chat.unreadCount }}</span>
+                }
+                @if (chat.isPinned) {
+                  <span class="pin-icon" title="Pinned">
+                    <svg viewBox="0 0 24 24" width="16" height="16">
+                      <path fill="currentColor" d="M16.5 4.5l3 3-1.414 1.414L17 7.828V15l-2 2v3h-1v-3l-2-2V7.828L10.914 8.914 9.5 7.5l3-3h4z"></path>
+                    </svg>
+                  </span>
+                }
+              </div>
+            </div>
+          </div>
+        </div>
+      }
+    }
+  </div>
+  
+  <!-- Footer Credit -->
+  <div class="sidebar-footer">
+    <span class="made-by">Made by <strong>eng.elsayedebaid</strong></span>
+  </div>
+</div>
+
+<!-- Add Account Modal -->
+@if (showAddAccountModal) {
+  <div class="modal-overlay" (click)="closeAddAccountModal()">
+    <div class="modal-content" (click)="$event.stopPropagation()">
+      <div class="modal-header">
+        <h3>Add New Account</h3>
+        <button class="btn-close" (click)="closeAddAccountModal()">
+          <svg viewBox="0 0 24 24" width="20" height="20">
+            <path fill="currentColor" d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"></path>
+          </svg>
+        </button>
+      </div>
+      <div class="modal-body">
+        <div class="input-group">
+          <label>Account Name</label>
+          <input 
+            type="text" 
+            [(ngModel)]="newAccountName" 
+            placeholder="e.g., Work, Personal, Business..."
+            (keyup.enter)="createNewAccount()">
+        </div>
+        <p class="hint">You can add up to 10 WhatsApp accounts. Each account requires scanning a QR code.</p>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-cancel" (click)="closeAddAccountModal()">Cancel</button>
+        <button class="btn-create" (click)="createNewAccount()" [disabled]="!newAccountName.trim()">
+          Create Account
+        </button>
+      </div>
+    </div>
+  </div>
+}
