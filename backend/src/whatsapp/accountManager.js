@@ -660,24 +660,22 @@ class AccountManager extends EventEmitter {
     // Cache for getChats results to reduce redundant calls
     _chatsCache = null;
     _chatsCacheTime = 0;
-    _chatsCacheDuration = 3000; // 3 seconds cache
+    _chatsCacheDuration = 10000; // 10 seconds cache
+    _lastErrorLogTime = 0; // Prevent log spam
 
     async getChats() {
         const account = this.getActiveAccount();
         if (!account) {
-            console.log('getChats: No active account');
             return [];
         }
         
         const client = account.client;
         if (!client) {
-            console.log('getChats: No active client');
             return [];
         }
         
         // Check if the client's internal store is ready
         if (!account.isReady && !account.isAuthenticated) {
-            console.log('getChats: Account not authenticated yet');
             return [];
         }
         
@@ -690,23 +688,19 @@ class AccountManager extends EventEmitter {
         try {
             // Check if pupPage exists and is not closed
             if (!client.pupPage) {
-                console.log('getChats: Browser page not initialized');
                 return this._chatsCache || [];
             }
             
             try {
                 if (client.pupPage.isClosed()) {
-                    console.log('getChats: Browser page is closed');
                     return this._chatsCache || [];
                 }
             } catch (pageErr) {
-                console.log('getChats: Error checking page state:', pageErr.message);
                 return this._chatsCache || [];
             }
             
             // Check if getChats function exists on the client
             if (typeof client.getChats !== 'function') {
-                console.log('getChats: getChats function not available on client');
                 return this._chatsCache || [];
             }
             
@@ -714,11 +708,9 @@ class AccountManager extends EventEmitter {
             try {
                 const info = client.info;
                 if (!info || !info.wid) {
-                    console.log('getChats: Client info not available yet');
                     return this._chatsCache || [];
                 }
             } catch (infoErr) {
-                console.log('getChats: Error getting client info:', infoErr.message);
                 return this._chatsCache || [];
             }
             
@@ -738,7 +730,11 @@ class AccountManager extends EventEmitter {
             
             return chats;
         } catch (err) {
-            console.log('getChats error:', err.message);
+            // Only log error once every 30 seconds to avoid spam
+            if (now - this._lastErrorLogTime > 30000) {
+                console.log('getChats error:', err.message);
+                this._lastErrorLogTime = now;
+            }
             // Return cached array if store not ready yet
             return this._chatsCache || [];
         }

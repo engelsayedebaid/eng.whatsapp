@@ -114,7 +114,8 @@ export class ChatListComponent implements OnInit, OnDestroy {
     this.loadChats();
     this.accountService.loadAccounts(); // Load accounts on init
 
-    this.refreshInterval = interval(5000).subscribe(() => {
+    // Reduced polling interval to 15 seconds to decrease server load
+    this.refreshInterval = interval(15000).subscribe(() => {
       this.loadChats();
       this.accountService.loadAccounts(); // Refresh accounts periodically
     });
