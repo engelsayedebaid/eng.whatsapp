@@ -657,6 +657,11 @@ class AccountManager extends EventEmitter {
     }
 
     // Proxy methods for backward compatibility with existing API
+    // Cache for getChats results to reduce redundant calls
+    _chatsCache = null;
+    _chatsCacheTime = 0;
+    _chatsCacheDuration = 3000; // 3 seconds cache
+
     async getChats() {
         const account = this.getActiveAccount();
         if (!account) {
@@ -676,34 +681,66 @@ class AccountManager extends EventEmitter {
             return [];
         }
         
+        // Return cached result if still valid
+        const now = Date.now();
+        if (this._chatsCache && (now - this._chatsCacheTime) < this._chatsCacheDuration) {
+            return this._chatsCache;
+        }
+        
         try {
             // Check if pupPage exists and is not closed
             if (!client.pupPage) {
                 console.log('getChats: Browser page not initialized');
-                return [];
+                return this._chatsCache || [];
             }
             
             try {
                 if (client.pupPage.isClosed()) {
                     console.log('getChats: Browser page is closed');
-                    return [];
+                    return this._chatsCache || [];
                 }
             } catch (pageErr) {
                 console.log('getChats: Error checking page state:', pageErr.message);
-                return [];
+                return this._chatsCache || [];
             }
             
             // Check if getChats function exists on the client
             if (typeof client.getChats !== 'function') {
                 console.log('getChats: getChats function not available on client');
-                return [];
+                return this._chatsCache || [];
             }
             
-            return await client.getChats();
+            // Additional check: verify internal store is ready
+            try {
+                const info = client.info;
+                if (!info || !info.wid) {
+                    console.log('getChats: Client info not available yet');
+                    return this._chatsCache || [];
+                }
+            } catch (infoErr) {
+                console.log('getChats: Error getting client info:', infoErr.message);
+                return this._chatsCache || [];
+            }
+            
+            const chats = await client.getChats();
+            
+            // Update cache
+            this._chatsCache = chats;
+            this._chatsCacheTime = now;
+            
+            // Mark as ready if we successfully got chats
+            if (chats && Array.isArray(chats) && !account.isReady) {
+                console.log(`[${account.id}] Got chats successfully, marking as ready`);
+                account.isReady = true;
+                account.isInitializing = false;
+                this.emit('ready', { accountId: account.id });
+            }
+            
+            return chats;
         } catch (err) {
             console.log('getChats error:', err.message);
-            // Return empty array if store not ready yet
-            return [];
+            // Return cached array if store not ready yet
+            return this._chatsCache || [];
         }
     }
 
