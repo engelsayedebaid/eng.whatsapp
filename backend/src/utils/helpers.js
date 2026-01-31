@@ -36,12 +36,37 @@ function formatMessage(message, authorContact = null) {
     let authorInfo = null;
     if (message.author) {
         // Parse author ID to get phone number
-        const authorNumber = message.author.split('@')[0];
+        // Note: author can be in format LIDID@lid or phonenumber@c.us
+        const authorIdParts = message.author.split('@');
+        const authorIdNumber = authorIdParts[0];
+        const authorIdType = authorIdParts[1] || 'c.us';
+        
+        // Get the real phone number from contact if available (more reliable than author ID)
+        // This is important because author ID might be LID (Linked ID) instead of phone number
+        let realPhoneNumber = null;
+        if (authorContact) {
+            // Try to get the actual phone number from the contact
+            realPhoneNumber = authorContact.number || authorContact.id?.user || null;
+            // If contact id has the real number
+            if (!realPhoneNumber && authorContact.id?._serialized) {
+                const contactIdParts = authorContact.id._serialized.split('@');
+                if (contactIdParts[1] === 'c.us') {
+                    realPhoneNumber = contactIdParts[0];
+                }
+            }
+        }
+        
+        // Use real phone number if available, otherwise fall back to author ID
+        // Only use author ID number if it looks like a valid phone number
+        const isValidPhoneNumber = /^\d{7,15}$/.test(authorIdNumber) && authorIdType === 'c.us';
+        const displayNumber = realPhoneNumber || (isValidPhoneNumber ? authorIdNumber : null);
+        
         authorInfo = {
             id: message.author,
-            number: authorNumber,
+            number: displayNumber || authorIdNumber, // Fall back to authorIdNumber even if not valid phone
             name: authorContact?.pushname || authorContact?.name || null,
-            profilePicUrl: null // Will be set separately if available
+            profilePicUrl: null, // Will be set separately if available
+            isLid: authorIdType === 'lid' // Flag to indicate if this is a LID, not phone number
         };
     }
 
@@ -61,6 +86,10 @@ function formatMessage(message, authorContact = null) {
         };
     }
 
+    // Check if message was deleted/revoked
+    const isDeleted = message.type === 'revoked' || 
+                      message.body === '' && !message.hasMedia && message.type === 'chat';
+
     return {
         id: message.id._serialized,
         body: message.body,
@@ -74,6 +103,7 @@ function formatMessage(message, authorContact = null) {
         isForwarded: message.isForwarded,
         isStatus: message.isStatus,
         isStarred: message.isStarred,
+        isDeleted: isDeleted, // New field for deleted messages
         ack: message.ack, // 0: pending, 1: sent, 2: delivered, 3: read
         mentionedIds: message.mentionedIds || [],
         quotedMsg: message.hasQuotedMsg ? message._data.quotedMsg : null
@@ -90,6 +120,11 @@ async function formatMessageWithAuthor(message, client) {
     if (message.author && client) {
         try {
             authorContact = await client.getContactById(message.author);
+            
+            // Debug log to help diagnose phone number issues
+            if (authorContact) {
+                console.log(`[Author Debug] author: ${message.author}, contact.number: ${authorContact.number}, contact.id: ${authorContact.id?._serialized}, contact.pushname: ${authorContact.pushname}`);
+            }
         } catch (e) {
             console.log('Could not get author contact:', e.message);
         }
@@ -104,6 +139,16 @@ async function formatMessageWithAuthor(message, client) {
             formatted.authorInfo.profilePicUrl = profilePic || null;
         } catch (e) {
             // Profile pic might not be available
+        }
+        
+        // If we still don't have a valid phone number and the author ID looks like a LID,
+        // try to get the number from the contact's id if it's different from author
+        if (formatted.authorInfo.isLid && authorContact && authorContact.id?._serialized !== message.author) {
+            const contactIdParts = authorContact.id._serialized.split('@');
+            if (contactIdParts[1] === 'c.us' && /^\d{7,15}$/.test(contactIdParts[0])) {
+                formatted.authorInfo.number = contactIdParts[0];
+                console.log(`[Author Debug] Fixed phone from contact.id: ${contactIdParts[0]}`);
+            }
         }
     }
 

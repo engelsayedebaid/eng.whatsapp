@@ -31,6 +31,7 @@ export interface Message {
   isForwarded: boolean;
   isStatus: boolean;
   isStarred: boolean;
+  isDeleted: boolean; // For deleted/revoked messages
   ack: number;
   mentionedIds: string[];
   quotedMsg: any;
@@ -53,6 +54,7 @@ export interface AuthorInfo {
   number: string;
   name: string | null;
   profilePicUrl: string | null;
+  isLid?: boolean; // True if the number is a Linked ID, not a real phone number
 }
 
 export interface ChatFilters {

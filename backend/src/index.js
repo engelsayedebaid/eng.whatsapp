@@ -108,6 +108,19 @@ whatsappClient.on('init_failure', (error) => {
     io.emit('init_failure', { message: error });
 });
 
+// Handle account switched event
+whatsappClient.on('account_switched', ({ accountId }) => {
+    console.log('Account switched to:', accountId);
+    io.emit('account_switched', { accountId });
+    io.emit('status', whatsappClient.getStatus());
+});
+
+// Handle account created event
+whatsappClient.on('account_created', ({ id, name }) => {
+    console.log('Account created:', id, name);
+    io.emit('account_created', { id, name });
+});
+
 // Initialize WhatsApp client
 console.log('Initializing WhatsApp client...');
 whatsappClient.initialize().catch(err => {

@@ -1,5 +1,7 @@
 const { Client, LocalAuth } = require('whatsapp-web.js');
 const EventEmitter = require('events');
+const fs = require('fs');
+const path = require('path');
 
 class WhatsAppClient extends EventEmitter {
     constructor() {
@@ -11,6 +13,54 @@ class WhatsAppClient extends EventEmitter {
         this.isInitializing = false;
         this.initRetryCount = 0;
         this.maxRetries = 3;
+        
+        // Store for deleted messages
+        this.deletedMessages = new Map();
+        this.deletedMessagesFile = path.join(__dirname, '../../data/deleted_messages.json');
+        this.loadDeletedMessages();
+    }
+
+    // Load deleted messages from file
+    loadDeletedMessages() {
+        try {
+            if (fs.existsSync(this.deletedMessagesFile)) {
+                const data = JSON.parse(fs.readFileSync(this.deletedMessagesFile, 'utf8'));
+                this.deletedMessages = new Map(Object.entries(data));
+                console.log(`Loaded ${this.deletedMessages.size} deleted messages from storage`);
+            }
+        } catch (err) {
+            console.log('Could not load deleted messages:', err.message);
+        }
+    }
+
+    // Save deleted messages to file
+    saveDeletedMessages() {
+        try {
+            const dir = path.dirname(this.deletedMessagesFile);
+            if (!fs.existsSync(dir)) {
+                fs.mkdirSync(dir, { recursive: true });
+            }
+            const data = Object.fromEntries(this.deletedMessages);
+            fs.writeFileSync(this.deletedMessagesFile, JSON.stringify(data, null, 2));
+        } catch (err) {
+            console.log('Could not save deleted messages:', err.message);
+        }
+    }
+
+    // Get deleted message by ID
+    getDeletedMessage(messageId) {
+        return this.deletedMessages.get(messageId);
+    }
+
+    // Get all deleted messages for a chat
+    getDeletedMessagesForChat(chatId) {
+        const result = [];
+        for (const [id, msg] of this.deletedMessages) {
+            if (msg.chatId === chatId) {
+                result.push(msg);
+            }
+        }
+        return result;
     }
 
     async initialize() {
@@ -130,6 +180,40 @@ class WhatsAppClient extends EventEmitter {
                 if (message.fromMe) {
                     this.emit('message_sent', message);
                 }
+            });
+
+            // Message revoked/deleted for everyone
+            this.client.on('message_revoke_everyone', async (message, revokedMsg) => {
+                console.log('Message revoked for everyone:', message.id._serialized);
+                
+                // Save the original message before it's deleted
+                if (revokedMsg) {
+                    const chatId = message.from || message.to;
+                    const deletedMsgData = {
+                        id: revokedMsg.id._serialized,
+                        chatId: chatId,
+                        body: revokedMsg.body || '[Media]',
+                        timestamp: revokedMsg.timestamp,
+                        fromMe: revokedMsg.fromMe,
+                        author: revokedMsg.author || null,
+                        type: 'revoked',
+                        hasMedia: revokedMsg.hasMedia || false,
+                        deletedAt: Date.now(),
+                        originalType: revokedMsg.type
+                    };
+                    
+                    this.deletedMessages.set(revokedMsg.id._serialized, deletedMsgData);
+                    this.saveDeletedMessages();
+                    console.log('Saved deleted message:', revokedMsg.id._serialized);
+                }
+                
+                this.emit('message_revoked', { message, revokedMsg });
+            });
+
+            // Message revoked/deleted for me only
+            this.client.on('message_revoke_me', async (message) => {
+                console.log('Message revoked for me:', message.id._serialized);
+                this.emit('message_revoked_me', message);
             });
 
             // Initialize the client with error handling

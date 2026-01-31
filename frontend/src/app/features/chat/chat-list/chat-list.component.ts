@@ -296,6 +296,11 @@ export class ChatListComponent implements OnInit, OnDestroy {
         break;
       case 'contactType':
         this.filterService.updateFilter('contactType', value as any);
+        // When selecting "New Contacts", automatically apply "Today" filter
+        // because new contacts are defined as people who contacted for the first time today
+        if (value === 'new') {
+          this.filterService.updateFilter('dateRange', 'today');
+        }
         break;
     }
     this.loadChats();

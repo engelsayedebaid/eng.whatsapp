@@ -82,26 +82,24 @@ router.get('/chats', async (req, res) => {
             const lastMessage = messages.length > 0 ? messages[messages.length - 1] : null;
             const messageCount = messages.length;
             
+            // Sort messages by timestamp (oldest first) to correctly identify the first message
+            const sortedMessages = [...messages].sort((a, b) => a.timestamp - b.timestamp);
+            
             // Get the first (oldest) message timestamp
-            const firstMessage = messages.length > 0 ? messages[0] : null;
+            const firstMessage = sortedMessages.length > 0 ? sortedMessages[0] : null;
             const firstMessageTimestamp = firstMessage ? firstMessage.timestamp : null;
             
             // Check if ALL messages are from today (no messages before today)
-            // If the oldest message in our fetch is from today, AND the message count 
-            // doesn't exceed our limit (meaning we got all messages), then all are from today
+            // This is a NEW contact only if the oldest message is from today
             let allMessagesToday = false;
-            if (messages.length > 0 && firstMessageTimestamp) {
+            if (sortedMessages.length > 0 && firstMessageTimestamp) {
                 const oldestMsgDate = new Date(firstMessageTimestamp * 1000);
-                // All messages are from today if:
-                // 1. The oldest message we fetched is from today
-                // 2. We fetched less than the limit (meaning we got ALL messages)
-                const oldestIsToday = oldestMsgDate.toDateString() === todayStr;
-                const gotAllMessages = messages.length < 100; // Less than limit means we got everything
-                allMessagesToday = oldestIsToday && gotAllMessages;
+                // New contact if the oldest message is from today
+                allMessagesToday = oldestMsgDate.toDateString() === todayStr;
             }
             
             const formatted = formatChat(chat, lastMessage, messageCount, firstMessageTimestamp, allMessagesToday);
-            formatted.hasBeenReplied = hasBeenReplied(messages);
+            formatted.hasBeenReplied = hasBeenReplied(sortedMessages);
             return formatted;
         }));
         
@@ -261,6 +259,42 @@ router.get('/chats/:id/messages', async (req, res) => {
         } else {
             formattedMessages = messages.map(formatMessage);
         }
+
+        // Add deleted messages that were saved
+        const deletedMessages = whatsappClient.getDeletedMessagesForChat(chatId);
+        if (deletedMessages && deletedMessages.length > 0) {
+            // Format deleted messages
+            const formattedDeletedMsgs = deletedMessages.map(msg => ({
+                id: msg.id,
+                body: msg.body,
+                timestamp: msg.timestamp,
+                fromMe: msg.fromMe,
+                author: msg.author,
+                authorInfo: null,
+                type: 'revoked',
+                hasMedia: false,
+                mediaInfo: null,
+                isForwarded: false,
+                isStatus: false,
+                isStarred: false,
+                isDeleted: true,
+                ack: 3,
+                mentionedIds: [],
+                quotedMsg: null,
+                deletedAt: msg.deletedAt
+            }));
+            
+            // Add to messages list (avoid duplicates)
+            const existingIds = new Set(formattedMessages.map(m => m.id));
+            for (const delMsg of formattedDeletedMsgs) {
+                if (!existingIds.has(delMsg.id)) {
+                    formattedMessages.push(delMsg);
+                }
+            }
+        }
+
+        // Sort messages by timestamp (oldest first) for proper chat display
+        formattedMessages.sort((a, b) => a.timestamp - b.timestamp);
 
         res.json({ 
             success: true, 
@@ -706,10 +740,21 @@ router.get('/analytics', async (req, res) => {
                 
                 // Check if this is a new contact today (all messages are from today)
                 let isNewContactToday = false;
-                if (!isGroup && messages.length > 0 && messages.length < 100) {
-                    const oldestMessage = messages[0];
+                if (!isGroup && messages.length > 0 && messages.length < 50) {
+                    // Sort messages by timestamp to get the actual oldest message
+                    const sortedMessages = [...messages].sort((a, b) => a.timestamp - b.timestamp);
+                    const oldestMessage = sortedMessages[0];
                     const oldestMsgDate = new Date(oldestMessage.timestamp * 1000);
-                    isNewContactToday = oldestMsgDate.toDateString() === todayStr;
+                    
+                    // Check if oldest message is from today
+                    if (oldestMsgDate.toDateString() === todayStr) {
+                        // Also verify all messages are from today
+                        const allFromToday = sortedMessages.every(msg => {
+                            const msgDate = new Date(msg.timestamp * 1000);
+                            return msgDate.toDateString() === todayStr;
+                        });
+                        isNewContactToday = allFromToday;
+                    }
                 }
                 if (isNewContactToday) newContactsToday++;
                 

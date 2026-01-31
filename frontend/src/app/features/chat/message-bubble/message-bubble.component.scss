@@ -165,6 +165,100 @@
     width: 100%;
   }
 
+  // Deleted message style
+  .message-deleted {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 14px;
+    font-style: italic;
+    color: #8696a0;
+    width: 100%;
+
+    svg {
+      flex-shrink: 0;
+      opacity: 0.7;
+    }
+  }
+
+  // Deleted message container - shows original content
+  .deleted-message-container {
+    width: 100%;
+
+    .deleted-label {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 12px;
+      font-style: italic;
+      color: #ea4b5f;
+      margin-bottom: 4px;
+
+      svg {
+        flex-shrink: 0;
+        opacity: 0.8;
+      }
+    }
+
+    .deleted-original-content {
+      font-size: 14px;
+      line-height: 19px;
+      color: #e9edef;
+      background: rgba(234, 75, 95, 0.1);
+      border-left: 3px solid #ea4b5f;
+      padding: 8px 12px;
+      border-radius: 0 6px 6px 0;
+      white-space: pre-wrap;
+      word-wrap: break-word;
+    }
+  }
+
+  // Contact Card style
+  .contact-card {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 12px;
+    background: rgba(0, 0, 0, 0.2);
+    border-radius: 8px;
+    min-width: 200px;
+    width: 100%;
+
+    .contact-avatar {
+      width: 44px;
+      height: 44px;
+      border-radius: 50%;
+      background: #2a3942;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      color: #8696a0;
+    }
+
+    .contact-info {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+      min-width: 0;
+
+      .contact-name {
+        font-size: 14px;
+        font-weight: 500;
+        color: #e9edef;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+
+      .contact-phone {
+        font-size: 13px;
+        color: #8696a0;
+        white-space: nowrap;
+      }
+    }
+  }
+
   .message-meta {
     display: flex;
     align-items: center;

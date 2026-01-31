@@ -13,6 +13,10 @@ class AccountManager extends EventEmitter {
         this.activeAccountId = null;
         this.maxAccounts = 10;
         this.configPath = path.join(__dirname, '../../data/accounts.json');
+        this.deletedMessagesPath = path.join(__dirname, '../../data/deleted_messages.json');
+        
+        // Store for deleted messages
+        this.deletedMessages = new Map();
         
         // Ensure data directory exists
         const dataDir = path.dirname(this.configPath);
@@ -20,8 +24,49 @@ class AccountManager extends EventEmitter {
             fs.mkdirSync(dataDir, { recursive: true });
         }
         
-        // Load saved accounts config
+        // Load saved accounts config and deleted messages
         this.loadAccountsConfig();
+        this.loadDeletedMessages();
+    }
+
+    // Load deleted messages from file
+    loadDeletedMessages() {
+        try {
+            if (fs.existsSync(this.deletedMessagesPath)) {
+                const data = JSON.parse(fs.readFileSync(this.deletedMessagesPath, 'utf8'));
+                this.deletedMessages = new Map(Object.entries(data));
+                console.log(`Loaded ${this.deletedMessages.size} deleted messages from storage`);
+            }
+        } catch (err) {
+            console.log('Could not load deleted messages:', err.message);
+        }
+    }
+
+    // Save deleted messages to file
+    saveDeletedMessages() {
+        try {
+            const data = Object.fromEntries(this.deletedMessages);
+            fs.writeFileSync(this.deletedMessagesPath, JSON.stringify(data, null, 2));
+        } catch (err) {
+            console.log('Could not save deleted messages:', err.message);
+        }
+    }
+
+    // Save a deleted message
+    saveDeletedMessage(messageData) {
+        this.deletedMessages.set(messageData.id, messageData);
+        this.saveDeletedMessages();
+    }
+
+    // Get all deleted messages for a chat
+    getDeletedMessagesForChat(chatId) {
+        const result = [];
+        for (const [id, msg] of this.deletedMessages) {
+            if (msg.chatId === chatId) {
+                result.push(msg);
+            }
+        }
+        return result;
     }
 
     loadAccountsConfig() {
@@ -33,6 +78,12 @@ class AccountManager extends EventEmitter {
                 // Create account entries (but don't initialize clients yet)
                 if (data.accounts && Array.isArray(data.accounts)) {
                     data.accounts.forEach(acc => {
+                        // Check if session exists for this account
+                        const sessionPath = path.join(__dirname, `../../.wwebjs_auth/session-${acc.id}`);
+                        const hasSession = fs.existsSync(sessionPath);
+                        
+                        console.log(`Loading account ${acc.id} (${acc.name}), session exists: ${hasSession}`);
+                        
                         this.accounts.set(acc.id, {
                             id: acc.id,
                             name: acc.name,
@@ -40,12 +91,14 @@ class AccountManager extends EventEmitter {
                             createdAt: acc.createdAt,
                             client: null,
                             isReady: false,
-                            isAuthenticated: false,
+                            isAuthenticated: false, // Will be set when client initializes
                             isInitializing: false,
-                            qrCode: null
+                            qrCode: null,
+                            hasStoredSession: hasSession // Track if session file exists
                         });
                     });
                 }
+                console.log(`Loaded ${this.accounts.size} accounts from config`);
             }
         } catch (error) {
             console.error('Error loading accounts config:', error);
@@ -184,10 +237,13 @@ class AccountManager extends EventEmitter {
         }
 
         try {
+            const authPath = path.join(__dirname, '../../.wwebjs_auth');
+            console.log(`[${accountId}] Using auth path: ${authPath}`);
+            
             const client = new Client({
                 authStrategy: new LocalAuth({
                     clientId: accountId,
-                    dataPath: './.wwebjs_auth'
+                    dataPath: authPath
                 }),
                 puppeteer: {
                     headless: true,
@@ -199,11 +255,20 @@ class AccountManager extends EventEmitter {
                         '--no-first-run',
                         '--no-zygote',
                         '--disable-gpu'
-                    ]
-                }
+                    ],
+                    // Increase timeout for slow connections
+                    timeout: 60000
+                },
+                // Restore session from stored data
+                restartOnAuthFail: true
             });
 
             account.client = client;
+
+            // Session saved event - confirms session was persisted
+            client.on('remote_session_saved', () => {
+                console.log(`[${accountId}] ✅ Remote session saved successfully`);
+            });
 
             // QR Code event
             client.on('qr', (qr) => {
@@ -313,6 +378,34 @@ class AccountManager extends EventEmitter {
                 }
             });
 
+            // Message revoked/deleted for everyone
+            client.on('message_revoke_everyone', async (message, revokedMsg) => {
+                console.log(`[${accountId}] Message revoked for everyone:`, message.id._serialized);
+                
+                // Save the original message before it's deleted
+                if (revokedMsg) {
+                    const chatId = message.from || message.to;
+                    const deletedMsgData = {
+                        id: revokedMsg.id._serialized,
+                        chatId: chatId,
+                        body: revokedMsg.body || '[Media]',
+                        timestamp: revokedMsg.timestamp,
+                        fromMe: revokedMsg.fromMe,
+                        author: revokedMsg.author || null,
+                        type: 'revoked',
+                        hasMedia: revokedMsg.hasMedia || false,
+                        deletedAt: Date.now(),
+                        originalType: revokedMsg.type,
+                        accountId: accountId
+                    };
+                    
+                    this.saveDeletedMessage(deletedMsgData);
+                    console.log(`[${accountId}] Saved deleted message:`, revokedMsg.id._serialized);
+                }
+                
+                this.emit('message_revoked', { accountId, message, revokedMsg });
+            });
+
             await client.initialize();
             console.log(`[${accountId}] Client initialization completed`);
 
@@ -332,11 +425,27 @@ class AccountManager extends EventEmitter {
             throw new Error('Account not found');
         }
 
+        // Save previous account state before switching
+        const previousAccountId = this.activeAccountId;
+        if (previousAccountId && previousAccountId !== accountId) {
+            const previousAccount = this.accounts.get(previousAccountId);
+            if (previousAccount) {
+                console.log(`[${previousAccountId}] Saving previous account state before switch`);
+                // Keep the client alive but mark that we're switching away
+                this.saveAccountsConfig();
+            }
+        }
+
         this.activeAccountId = accountId;
         this.saveAccountsConfig();
         
         // Initialize if not already
         if (!account.client && !account.isInitializing) {
+            console.log(`[${accountId}] Initializing account on switch`);
+            await this.initializeAccount(accountId);
+        } else if (account.client && !account.isReady && !account.isInitializing) {
+            // Client exists but not ready, try to reinitialize
+            console.log(`[${accountId}] Client exists but not ready, reinitializing...`);
             await this.initializeAccount(accountId);
         }
 
@@ -678,11 +787,27 @@ class AccountManager extends EventEmitter {
     }
 
     async initialize() {
-        // Initialize active account if exists
+        console.log('AccountManager initializing...');
+        
+        // First, initialize all accounts that have stored sessions
+        const accountsWithSessions = Array.from(this.accounts.values())
+            .filter(acc => acc.hasStoredSession);
+        
+        console.log(`Found ${accountsWithSessions.length} accounts with stored sessions`);
+        
+        // Initialize active account FIRST (priority)
         if (this.activeAccountId && this.accounts.has(this.activeAccountId)) {
-            await this.initializeAccount(this.activeAccountId);
+            console.log(`Initializing active account: ${this.activeAccountId}`);
+            try {
+                await this.initializeAccount(this.activeAccountId);
+                // Wait for session to stabilize before initializing other accounts
+                await new Promise(resolve => setTimeout(resolve, 5000));
+            } catch (err) {
+                console.log(`[${this.activeAccountId}] Init error:`, err.message);
+            }
         } else if (this.accounts.size === 0) {
             // Create default account if none exists
+            console.log('No accounts found, creating default account');
             const defaultAccount = await this.createAccount('Main Account');
             await this.initializeAccount(defaultAccount.id);
         } else {
@@ -690,8 +815,26 @@ class AccountManager extends EventEmitter {
             const firstId = this.accounts.keys().next().value;
             this.activeAccountId = firstId;
             this.saveAccountsConfig();
+            console.log(`Initializing first account: ${firstId}`);
             await this.initializeAccount(firstId);
         }
+        
+        // Initialize other accounts with sessions SEQUENTIALLY (not in parallel)
+        // This prevents conflicts with LocalAuth and Puppeteer
+        for (const acc of accountsWithSessions) {
+            if (acc.id !== this.activeAccountId) {
+                console.log(`[${acc.id}] Initializing account with stored session (sequential)`);
+                try {
+                    await this.initializeAccount(acc.id);
+                    // Wait between account initializations to prevent conflicts
+                    await new Promise(resolve => setTimeout(resolve, 3000));
+                } catch (err) {
+                    console.log(`[${acc.id}] Background init error:`, err.message);
+                }
+            }
+        }
+        
+        console.log('AccountManager initialization complete');
     }
 
     async destroy() {

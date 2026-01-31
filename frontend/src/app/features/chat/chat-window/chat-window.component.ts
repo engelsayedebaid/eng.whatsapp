@@ -304,6 +304,7 @@ export class ChatWindowComponent implements OnChanges, AfterViewChecked, OnDestr
       isForwarded: false,
       isStatus: false,
       isStarred: false,
+      isDeleted: false,
       ack: 0,
       mentionedIds: [],
       quotedMsg: null

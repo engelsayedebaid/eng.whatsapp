@@ -77,6 +77,35 @@ export class MessageBubbleComponent {
     return this.message.type === 'ptt';
   }
 
+  get isContactCard(): boolean {
+    return this.message.type === 'vcard' || this.message.type === 'multi_vcard';
+  }
+
+  get contactCardInfo(): { name: string, phone: string } | null {
+    if (!this.isContactCard || !this.message.body) return null;
+
+    try {
+      const vcard = this.message.body;
+      // Extract name from FN: field
+      const nameMatch = vcard.match(/FN:(.+)/);
+      const name = nameMatch ? nameMatch[1].trim() : 'Contact';
+
+      // Extract phone from TEL: field
+      const telMatch = vcard.match(/TEL[^:]*:(.+)/);
+      let phone = telMatch ? telMatch[1].trim() : '';
+
+      // Clean phone number
+      phone = phone.replace(/[^\d+]/g, '');
+      if (phone && !phone.startsWith('+')) {
+        phone = '+' + phone;
+      }
+
+      return { name, phone };
+    } catch (e) {
+      return null;
+    }
+  }
+
   get mediaCaption(): string {
     return this.message.mediaInfo?.caption || this.message.body || '';
   }
@@ -149,11 +178,27 @@ export class MessageBubbleComponent {
 
   getAuthorDisplayName(): string {
     if (this.message.authorInfo) {
+      // First priority: use the contact name if available
       if (this.message.authorInfo.name) {
         return this.message.authorInfo.name;
       }
-      // Format phone number
-      return '+' + this.message.authorInfo.number;
+      // If this is a LID (not a real phone number), show a placeholder
+      if (this.message.authorInfo.isLid) {
+        // If the number is very long (likely a LID), don't show it as phone
+        if (this.message.authorInfo.number && this.message.authorInfo.number.length > 15) {
+          return 'Participant';
+        }
+      }
+      // Format phone number if available
+      if (this.message.authorInfo.number) {
+        // Validate it looks like a phone number before displaying with +
+        if (/^\d{7,15}$/.test(this.message.authorInfo.number)) {
+          return '+' + this.message.authorInfo.number;
+        }
+        // If it's short but not a valid phone, just show it
+        return this.message.authorInfo.number;
+      }
+      return 'Participant';
     }
     return this.formatAuthor(this.message.author);
   }
@@ -178,6 +223,12 @@ export class MessageBubbleComponent {
     const id = this.message.authorInfo?.number || this.message.author || '';
     const hash = this.hashString(id);
     return this.authorColors[hash % this.authorColors.length];
+  }
+
+  isValidPhoneNumber(number: string | null | undefined): boolean {
+    if (!number) return false;
+    // Valid phone numbers are 7-15 digits only
+    return /^\d{7,15}$/.test(number);
   }
 
   formatAuthor(author: string | null): string {
