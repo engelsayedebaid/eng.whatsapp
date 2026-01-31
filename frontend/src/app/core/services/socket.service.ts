@@ -1,6 +1,7 @@
 import { Injectable } from '@angular/core';
 import { io, Socket } from 'socket.io-client';
 import { BehaviorSubject, Observable } from 'rxjs';
+import { environment } from '../../../environments/environment';
 
 export interface ConnectionStatus {
   isReady: boolean;
@@ -36,7 +37,7 @@ export interface SentMessage {
 })
 export class SocketService {
   private socket: Socket | null = null;
-  private readonly API_URL = 'http://localhost:3000';
+  private readonly API_URL = environment.wsUrl;
 
   private statusSubject = new BehaviorSubject<ConnectionStatus>({
     isReady: false,

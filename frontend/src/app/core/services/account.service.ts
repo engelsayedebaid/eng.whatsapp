@@ -2,6 +2,7 @@ import { Injectable, signal, computed } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable, BehaviorSubject } from 'rxjs';
 import { tap } from 'rxjs/operators';
+import { environment } from '../../../environments/environment';
 
 export interface Account {
   id: string;
@@ -35,7 +36,7 @@ export interface QRResponse {
   providedIn: 'root'
 })
 export class AccountService {
-  private readonly API_URL = 'http://localhost:3000/api';
+  private readonly API_URL = environment.apiUrl;
 
   // Signals for reactive state
   private accountsSignal = signal<Account[]>([]);
